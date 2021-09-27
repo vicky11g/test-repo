@@ -1,5 +1,5 @@
 let config = {
-  db: process.env.DB || 'mongodb://localhost:27017/global-onboarding',
+  db: process.env.DB || 'mongodb://localhost:27017/test',
   serverPort: process.env.PORT || 3000
 }
 

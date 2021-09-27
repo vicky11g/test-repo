@@ -16,11 +16,13 @@ fs.readdirSync(models)
   .forEach(file => require(join(models, file)));
 
 //routes
-const go = require('./routes/go');
+const user = require('./routes/user');
+const transaction = require('./routes/transaction');
 
 app.use(httpLogger.httpLogger);
 app.use(express.json());
-app.use('/go', go);
+app.use('/user', user);
+app.use('/transaction', transaction);
 app.use(errorHandler.errorHandler);
 
 module.exports = app;

@@ -1,4 +1,17 @@
 # test-repo
+  
+  Built using express and mongodb.
+
+# pre-requisite
+ monogo 3.4 or greater
+ node 14 or greater
+ 
+# usage:
+ run `npm install ` from the projet root
+ run `npm run start` to start the server at port 3000.
+  
+
+# API
 
   POST http://localhost:3000/user/create
   Content-Type: application/json

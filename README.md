@@ -66,7 +66,7 @@ POST http://localhost:3000/transaction/settel/vicky11g/group1
 Content-Type: application/json
 
 { 
-  "amount": 1000,
+  "amount": 1000
 }
 
 ###

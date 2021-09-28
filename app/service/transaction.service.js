@@ -11,21 +11,6 @@ const recordTransaction = async (req, res) => {
   }
 };
 
-// const getAgg = async (group, user) => {
-//   return Transactions.aggregate([
-//     { $match: { groupname: group } },
-//     {
-//       $group: {
-//         _id: { groupname: "$groupname" },
-//         total: { $sum: "$amount" },
-//         usertotal: {
-//           $sum: { $cond: [{ $eq: ["$username", user] }, "$amount", 0] }
-//         }
-//       }
-//     },
-//   ]);
-// };
-
 const getTransaction = async (req, res) => {
   try {
     const result = await Transactions.find({ groupname: req.params.groupname, username: req.params.username });
@@ -36,24 +21,36 @@ const getTransaction = async (req, res) => {
 };
 
 const recordSettelment = async (req, res) => {
-  try {
-    const gpData = await getGroupData(req.body.groupname);
-    const payload = {
-      groupname: req.body.groupname,
-      username: req.body.username,
-      amount: req.body.amount
-    };
-    await Transactions.create(payload);
-    const settelPayload = {
-      groupname: req.body.groupname,
-      username: req.body.username,
-      amount: req.body.amount,
-    };
-    await Settelment.create(req.body);
-    res.send({ status: 'success' }).status(200);
-  } catch (err) {
-    res.send(err.message);
-  }
+  const gpData = await getGroupDetails(req.params.groupname);
+  let settlementAmt = req.body.amount;
+  const settelPayload = [];
+  Object.keys(gpData.members).forEach(member => {
+    if (
+      member !== req.body.username
+      && gpData.members[member].spend > gpData.members[member].owe
+      && settlementAmt > 0
+    ) {
+      let own = gpData.members[member].spend - gpData.members[member].owe;
+      let sAmt = 0;
+      if (settlementAmt > own) {
+        sAmt = own;
+        settlementAmt = settlementAmt - own;
+      } else {
+        sAmt = settlementAmt;
+        settlementAmt = 0;
+      }
+      console.log(settlementAmt);
+      settelPayload.push({
+        groupname: req.body.groupname,
+        username: req.body.username,
+        recepient: member,
+        amount: sAmt
+      });
+    }
+  });
+  await Settelment.create(settelPayload);
+  res.send({ status: 'success' }).status(200);
+
 };
 
 const getSettelment = async (req, res) => {
@@ -65,61 +62,51 @@ const getSettelment = async (req, res) => {
   }
 };
 
-const createData = (result, gp) => {
-  console.log(result);
-  let r = { total: result.total };
-  const each = result.total / gp.members.length;
-  gp.members.forEach(key => {
-    const isOwn = each < result[key];
-    if (!result[key]) {
-      r[key] = {
-        owe: each,
-        spend: 0
-      }
-    } else {
-      r[key] = {
-        spend: result[key],
-      };
-      if (isOwn) {
-        r[key]['own'] = result[key] - each;
-      } else if (!isOwn) {
-        r[key]['owe'] = each - result[key];
-      }
-    }
-  });
-  return r;
-}
-
 const getGroupData = async (req, res) => {
   res.send(await getGroupDetails(req.params.groupname));
 }
 
-const getGroupDetails = async (groupname) => {
+const calculate = (rs, gp, st) => {
+  const mCount = gp.members.length;
+  const members = gp.members.reduce((r, member) => {
+    r[member] = { spend: 0, owe: 0 };
+    return r;
+  }, {});
+  let total = 0;
 
-  const rs = await Transactions.find({ groupname: groupname });
-  const group = await Groups.find({ name: groupname });
-  const result = rs.reduce((res, curr) => {
-    if (res[curr.username]) {
-      res[curr.username] += curr.amount;
-    } else {
-      res[curr.username] = curr.amount;
-    }
+  st.forEach(settlement => {
+    members[settlement.username].owe -= settlement.amount;
+    members[settlement.recepient].spend -= settlement.amount;
+  });
+
+  rs.forEach((curr) => {
+    let directed = 0;
+    let eachShare = 0;
+    total += curr.amount;
+    members[curr.username].spend += curr.amount;
     if (!curr.isAll) {
       Object.keys(curr.participants).forEach(key => {
-        if (!res[key]) {
-          res[key] = 0;
-        }
-        res[key] = res[key] - curr.participants[key];
+        directed += curr.participants[key];
+        members[key].owe += curr.participants[key];
       });
     }
-    res['total'] += curr.amount;
-    return res;
-  }, { total: 0 });
+    eachShare = Math.round(((curr.amount - directed) / mCount) * 100) / 100;
+    gp.members.forEach((member) => {
+      members[member].owe += eachShare;
+    });
+  });
 
-  const response = createData(result, group[0]);
-  Object.assign(response, { transactions: rs });
+  return { members, total };
+};
 
-  return response;
+const getGroupDetails = async (groupname) => {
+  const rs = await Transactions.find({ groupname: groupname });
+  const group = await Groups.find({ name: groupname });
+  const settelment = await Settelment.find({ groupname: groupname });
+  const result = calculate(rs, group[0], settelment);
+  Object.assign(result, { transactions: rs, settelment: settelment });
+
+  return result;
 };
 
 module.exports.recordTransaction = recordTransaction;

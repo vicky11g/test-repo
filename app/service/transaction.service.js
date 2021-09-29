@@ -83,14 +83,15 @@ const calculate = (rs, gp, st) => {
     let directed = 0;
     let eachShare = 0;
     total += curr.amount;
-    members[curr.username].spend += curr.amount;
+    if (members[curr.username])
+      members[curr.username].spend += curr.amount;
     if (!curr.isAll) {
       Object.keys(curr.participants).forEach(key => {
         directed += curr.participants[key];
         members[key].owe += curr.participants[key];
       });
     }
-    eachShare = Math.round(((curr.amount - directed) / mCount) * 100) / 100;
+    eachShare = (curr.amount - directed) / mCount;
     gp.members.forEach((member) => {
       members[member].owe += eachShare;
     });
@@ -101,6 +102,7 @@ const calculate = (rs, gp, st) => {
 
 const getGroupDetails = async (groupname) => {
   const rs = await Transactions.find({ groupname: groupname });
+  if (!rs.length) return { message: "NO transactions data found" };
   const group = await Groups.find({ name: groupname });
   const settelment = await Settelment.find({ groupname: groupname });
   const result = calculate(rs, group[0], settelment);

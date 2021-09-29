@@ -31,28 +31,27 @@ GET http://localhost:3000/user/groups
 GET http://localhost:3000/user/add/vicky33g/groups/group5
 
 ###
-POST http://localhost:3000/transaction/vicky11g/group1/group
+POST http://localhost:3000/transaction/demo1/group5/group
 Content-Type: application/json
 
 { 
-  "groupname": "group2",
-  "username": "demo1",
-  "amount": 1200,
+  "groupname": "group5",
+  "username": "vicky33g",
+  "amount": 1800,
   "participants": {
-    "vicky33g": "900"
   },
-  "isAll": false
+  "isAll": true
 }
 
 ###
-GET http://localhost:3000/transaction/vicky11g/group1/group
+GET http://localhost:3000/transaction/demo1/group5/group
 
 ###
-POST http://localhost:3000/transaction/settel/vicky11g/group2
+POST http://localhost:3000/transaction/settel/vicky11g/group5
 Content-Type: application/json
 
 { 
-  "groupname": "group2",
+  "groupname": "group5",
   "username": "vicky11g",
   "amount": 1000
 }
@@ -61,4 +60,4 @@ Content-Type: application/json
 GET http://localhost:3000/transaction/settel/vicky11g/group2
 
 ###
-GET http://localhost:3000/transaction/list/vicky33g/group2
+GET http://localhost:3000/transaction/list/vicky11g/group5
